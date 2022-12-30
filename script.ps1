@@ -1,4 +1,4 @@
-New-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name WallpaperStyle -PropertyType String -Value 6 -Force
+New-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name WallpaperStyle -PropertyType String -Value 10 -Force
 
 # TileWallpaper
 # 0: The wallpaper picture should not be tiled

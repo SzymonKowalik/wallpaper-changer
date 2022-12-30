@@ -16,7 +16,7 @@ def change_background(path):
         ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, path, 3)
 
 
-def scrape_image(subreddit):
+def scrape_image(url, subreddit):
     """From given subreddit link randomly chooses one and downloads photo from it.
     Photo is saved as 'wallpaper.jpg' in project folder"""
     # Get most popular posts from subreddit
@@ -24,13 +24,13 @@ def scrape_image(subreddit):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
     }
 
-    response = requests.get(subreddit, headers=headers)
+    response = requests.get(url, headers=headers)
 
     soup = BeautifulSoup(response.text, 'html.parser')
     elements = soup.find_all('a', href=True)
     links = []
     for elem in elements:
-        if '/r/wallpapers/comments' in str(elem):
+        if f'/r/{subreddit}/comments' in str(elem):
             link = f" https://reddit.com{elem['href']}"
             if link not in links:
                 links.append(link)
@@ -55,10 +55,11 @@ def windows_wallpaper_style(file):
 
 
 def main():
-    subreddit = 'https://www.reddit.com/r/wallpapers/top/?t=week'
+    subreddit = 'wallpapers'
+    url = f'https://www.reddit.com/r/{subreddit}/top/?t=week'
     script_path = 'script.ps1'
     windows_wallpaper_style(script_path)
-    path = scrape_image(subreddit)
+    path = scrape_image(url, subreddit)
     change_background(path)
 
 
