@@ -1,5 +1,9 @@
-import struct, ctypes, requests, random, os, subprocess, sys, configparser
+import struct, ctypes, requests, random, os, subprocess, sys
 from bs4 import BeautifulSoup
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
+}
 
 
 def is_64bit_windows():
@@ -16,17 +20,9 @@ def change_background(path):
         ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, path, 3)
 
 
-def scrape_image(url, subreddit):
-    """From given subreddit link randomly chooses one and downloads photo from it.
-    Photo is saved as 'wallpaper.jpg' in project folder"""
-
-    # Get most popular posts from subreddit
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
-    }
-
+def scrape_links(url, subreddit, headers) -> list:
+    """From given subreddit get links to posts and return them in list"""
     response = requests.get(url, headers=headers, allow_redirects=False)
-
     soup = BeautifulSoup(response.text, 'html.parser')
     elements = soup.find_all('a', href=True)
     links = []
@@ -35,20 +31,43 @@ def scrape_image(url, subreddit):
             link = f" https://reddit.com{elem['href']}"
             if link not in links:
                 links.append(link)
-                print('link found')
+    return links
 
-    # Download image from random post
+
+def get_random_img(links, headers):
+    """Choose random post from links, download image and return absolute path to it"""
     post_url = random.choice(links)
     response = requests.get(post_url, headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')
     elements = soup.find_all('a', href=True)
     for elem in elements:
         if 'i.redd.it/' in str(elem):
-            print('image found')
             img = requests.get(elem['href']).content
             with open('wallpaper.jpg', 'wb') as handler:
                 handler.write(img)
     return os.path.abspath('wallpaper.jpg')
+
+
+def is_file_same(file1, file2):
+    """Checks if new image is same as old image.
+    If any of images do not exist returns True to continue loop"""
+    try:
+        return open(file1, 'rb').read() == open(file2, 'rb').read()
+    except FileNotFoundError:
+        return True
+
+
+def image_downloader(links, headers):
+    """Function tries to download different image from given links.
+    If it fails 5 times exception is raised"""
+    attempt = 1
+    while attempt <= 5:
+        path = get_random_img(links, headers)
+        if not is_file_same('wallpaper.jpg', 'old.jpg'):
+            return path
+        attempt += 1
+    else:
+        raise Exception("Couldn't download different image")
 
 
 def rename_old_wallpaper():
@@ -68,22 +87,6 @@ def windows_wallpaper_style(file):
     p.communicate()
 
 
-def is_file_same(file1, file2):
-    """Checks if new image is same as old image.
-    If any of images do not exist returns True to continue loop"""
-    try:
-        return open(file1, 'rb').read() == open(file2, 'rb').read()
-    except FileNotFoundError:
-        return True
-
-
-def change_wallpaper(subreddit, interval):
-    """Function calls another function to get new wallpaper and then set it on Windows"""
-    url = f'https://www.reddit.com/r/{subreddit}/top/?t={interval}'
-    path = scrape_image(url, subreddit)
-    change_background(path)
-
-
 if __name__ == '__main__':
     # User settings:
     subreddit = 'wallpapers'
@@ -91,10 +94,10 @@ if __name__ == '__main__':
     # Comment following line not to change wallpaper settings
     windows_wallpaper_style('script.ps1')
 
+    url = f'https://www.reddit.com/r/{subreddit}/top/?t={interval}'
+    links = scrape_links(url, subreddit, HEADERS)
     rename_old_wallpaper()
-    while True:
-        change_wallpaper(subreddit, interval)
-        if not is_file_same('wallpaper.jpg', 'old.jpg'):
-            break
-    os.remove('old.jpg')
 
+    path = image_downloader(links, HEADERS)
+    change_background(path)
+    os.remove('old.jpg')
