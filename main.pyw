@@ -1,5 +1,6 @@
 import struct, ctypes, requests, random, os, subprocess, sys
 from bs4 import BeautifulSoup
+from PIL import Image
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
@@ -20,24 +21,23 @@ def change_background(path):
         ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, path, 3)
 
 
-def scrape_links(url, subreddit, headers) -> list:
+def scrape_links(url, subreddit) -> list:
     """From given subreddit get links to posts and return them in list"""
-    response = requests.get(url, headers=headers, allow_redirects=False)
+    response = requests.get(url, headers=HEADERS, allow_redirects=False)
     soup = BeautifulSoup(response.text, 'html.parser')
     elements = soup.find_all('a', href=True)
     links = []
     for elem in elements:
         if f'/r/{subreddit}/comments'.lower() in str(elem).lower():
-            link = f" https://reddit.com{elem['href']}"
+            link = f"https://reddit.com{elem['href']}"
             if link not in links:
                 links.append(link)
     return links
 
 
-def get_random_img(links, headers):
-    """Choose random post from links, download image and return absolute path to it"""
-    post_url = random.choice(links)
-    response = requests.get(post_url, headers=headers)
+def download_image(link):
+    """Download image from url and return absolute path to it"""
+    response = requests.get(link, headers=HEADERS)
     soup = BeautifulSoup(response.text, 'html.parser')
     elements = soup.find_all('a', href=True)
     for elem in elements:
@@ -56,16 +56,28 @@ def is_file_same(file1, file2):
     except FileNotFoundError:
         return True
 
+def check_aspect_ratio(image_path, min_ratio: tuple):
+    """Check if the aspect ratio of an image file is greater than a desired minimal ratio."""
+    # Calculates minimal aspect min_ratio
+    desired_ratio = min_ratio[0] / min_ratio[1]
+    # Calculate actual image min_ratio
+    img = Image.open(image_path)
+    image_ratio = img.width / img.height
+    # Check condition
+    if image_ratio < desired_ratio:
+        return False
+    else:
+        return True
 
-def image_downloader(links, headers):
+
+def image_downloader(links, ratio):
     """Function tries to download different image from given links.
     If it fails 5 times exception is raised"""
-    attempt = 1
-    while attempt <= 5:
-        path = get_random_img(links, headers)
-        if not is_file_same('wallpaper.jpg', 'old.jpg'):
+    random.shuffle(links)
+    for link in links:
+        path = download_image(link)
+        if not is_file_same('wallpaper.jpg', 'old.jpg') and check_aspect_ratio('wallpaper.jpg', ratio):
             return path
-        attempt += 1
     else:
         raise Exception("Couldn't download different image")
 
@@ -87,17 +99,21 @@ def windows_wallpaper_style(file):
     p.communicate()
 
 
-if __name__ == '__main__':
+def main():
     # User settings:
     subreddit = 'wallpapers'
     interval = 'day'
+    ratio = (4, 3)
     # Comment following line not to change wallpaper settings
     windows_wallpaper_style('script.ps1')
 
     url = f'https://www.reddit.com/r/{subreddit}/top/?t={interval}'
-    links = scrape_links(url, subreddit, HEADERS)
+    links = scrape_links(url, subreddit)
     rename_old_wallpaper()
 
-    path = image_downloader(links, HEADERS)
+    path = image_downloader(links, ratio)
     change_background(path)
     os.remove('old.jpg')
+
+if __name__ == '__main__':
+    main()

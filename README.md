@@ -2,11 +2,11 @@
 # wallpaper-changer
 Wallpaper changer in Python. Scrapes reddit and sets wallpaper on Windows. Program will run until it finds different image from previous.
 
-# How to change subreddit and time range options
-For subreddit change - type subreddit name (case-insensitive)
+# How to customise script?
+### For subreddit change - type subreddit name (case-insensitive)
 >subreddit = 'wallpapers'  
 
-For time range change set
+### For time range change set
 >interval = 'day'
 
 for the following:
@@ -15,6 +15,10 @@ for the following:
  - month
  - year
  - all
+
+### For minimal image aspect ratio
+>ratio = (4, 3)
+
 # How to use powershell script?
 To disable script you need to comment out
 >windows_wallpaper_style('script.ps1')
