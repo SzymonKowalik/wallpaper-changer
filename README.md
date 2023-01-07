@@ -10,11 +10,11 @@ Wallpaper changer in Python. Scrapes reddit and sets wallpaper on Windows. Progr
 >interval = 'day'
 
 for the following:
- - hour
- - day
- - month
- - year
- - all
+-   hour
+-   day
+-   month
+-   year
+-   all
 
 ### For minimal image aspect ratio
 >ratio = (4, 3)

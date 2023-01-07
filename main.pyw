@@ -1,6 +1,8 @@
 import struct, ctypes, requests, random, os, subprocess, sys
 from bs4 import BeautifulSoup
 from PIL import Image
+from plyer import notification
+
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
@@ -20,10 +22,23 @@ def change_background(path):
     else:
         ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, path, 3)
 
+def make_notification(message):
+    notification.notify(
+        title = "wallpaper-changer",
+        message = message,
+        timeout = 8,
+        app_icon = './icon/python.ico'
+    )
+
 
 def scrape_links(url, subreddit) -> list:
     """From given subreddit get links to posts and return them in list"""
-    response = requests.get(url, headers=HEADERS, allow_redirects=False)
+    try:
+        response = requests.get(url, headers=HEADERS, allow_redirects=False)
+    except requests.ConnectionError:
+        make_notification('Connection error')
+        sys.exit()
+
     soup = BeautifulSoup(response.text, 'html.parser')
     elements = soup.find_all('a', href=True)
     links = []
@@ -56,6 +71,7 @@ def is_file_same(file1, file2):
     except FileNotFoundError:
         return True
 
+
 def check_aspect_ratio(image_path, min_ratio: tuple):
     """Check if the aspect ratio of an image file is greater than a desired minimal ratio."""
     # Calculates minimal aspect min_ratio
@@ -72,14 +88,17 @@ def check_aspect_ratio(image_path, min_ratio: tuple):
 
 def image_downloader(links, ratio):
     """Function tries to download different image from given links.
-    If it fails 5 times exception is raised"""
+    If images do not pass conditions notification is displayed"""
     random.shuffle(links)
-    for link in links:
-        path = download_image(link)
-        if not is_file_same('wallpaper.jpg', 'old.jpg') and check_aspect_ratio('wallpaper.jpg', ratio):
-            return path
-    else:
-        raise Exception("Couldn't download different image")
+    try:
+        for link in links:
+            path = download_image(link)
+            if not is_file_same('wallpaper.jpg', 'old.jpg') and check_aspect_ratio('wallpaper.jpg', ratio):
+                return path
+        else:
+            raise Exception("No images have been found")
+    except Exception as e:
+        make_notification(str(e))
 
 
 def rename_old_wallpaper():
@@ -114,6 +133,7 @@ def main():
     path = image_downloader(links, ratio)
     change_background(path)
     os.remove('old.jpg')
+
 
 if __name__ == '__main__':
     main()
