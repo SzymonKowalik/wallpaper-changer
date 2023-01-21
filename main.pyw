@@ -50,17 +50,19 @@ def scrape_links(url, subreddit) -> list:
     return links
 
 
-def download_image(link):
-    """Download image from url and return absolute path to it"""
+def download_image(link, ratio):
+    """Download image from url and return absolute path to it.
+    If many images on certain page picks random one that meets criteria."""
     response = requests.get(link, headers=HEADERS)
     soup = BeautifulSoup(response.text, 'html.parser')
-    elements = soup.find_all('a', href=True)
+    elements = [elem for elem in soup.find_all('a', href=True) if 'preview.redd.it/' in str(elem)]
+    random.shuffle(elements)
     for elem in elements:
-        if 'i.redd.it/' in str(elem):
-            img = requests.get(elem['href']).content
-            with open('wallpaper.jpg', 'wb') as handler:
-                handler.write(img)
-    return os.path.abspath('wallpaper.jpg')
+        img = requests.get(elem['href']).content
+        with open('wallpaper.jpg', 'wb') as handler:
+            handler.write(img)
+        if not is_file_same('wallpaper.jpg', 'old.jpg') and check_aspect_ratio('wallpaper.jpg', ratio):
+            return os.path.abspath('wallpaper.jpg')
 
 
 def is_file_same(file1, file2):
@@ -92,8 +94,8 @@ def image_downloader(links, ratio):
     random.shuffle(links)
     try:
         for link in links:
-            path = download_image(link)
-            if not is_file_same('wallpaper.jpg', 'old.jpg') and check_aspect_ratio('wallpaper.jpg', ratio):
+            path = download_image(link, ratio)
+            if path:
                 return path
         else:
             raise Exception("No images have been found")
