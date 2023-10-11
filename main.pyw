@@ -34,7 +34,7 @@ def make_notification(message):
 def scrape_links(url, subreddit) -> list:
     """From given subreddit get links to posts and return them in list"""
     try:
-        response = requests.get(url, headers=HEADERS, allow_redirects=False)
+        response = requests.get(url, headers=HEADERS)
     except requests.ConnectionError:
         make_notification('Connection error')
         sys.exit()
@@ -123,7 +123,7 @@ def windows_wallpaper_style(file):
 def main():
     # User settings:
     subreddit = 'wallpapers'
-    interval = 'day'
+    interval = 'week'
     ratio = (4, 3)
     # Comment following line not to change wallpaper settings
     windows_wallpaper_style('script.ps1')
