@@ -41,7 +41,7 @@ def make_notification(message):
     )
 
 
-def scrape_links(url, subreddit) -> list:
+def scrape_links(url) -> list:
     """From given subreddit get links to posts and return them in list"""
     try:
         response = requests.get(url, headers=HEADERS)
@@ -127,16 +127,25 @@ def windows_wallpaper_style(file):
     p.communicate()
 
 
+def scrape_multiple_subreddits(subreddits, interval):
+    links = []
+
+    for subreddit in subreddits:
+        url = f'https://www.reddit.com/r/{subreddit}/top/?t={interval}'
+        links += scrape_links(url)
+
+    return links
+
+
 def main():
     # User settings:
-    subreddit = 'wallpapers'
+    subreddits = ['wallpaper', 'wallpapers']
     interval = 'week'
     ratio = (4, 3)
     # Comment following line not to change wallpaper settings
     windows_wallpaper_style('script.ps1')
 
-    url = f'https://www.reddit.com/r/{subreddit}/top/?t={interval}'
-    links = scrape_links(url, subreddit)
+    links = scrape_multiple_subreddits(subreddits, interval)
     rename_old_wallpaper()
 
     path = image_downloader(links, ratio)

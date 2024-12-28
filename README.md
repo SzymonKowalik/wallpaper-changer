@@ -3,8 +3,8 @@
 Wallpaper changer in Python. Scrapes reddit and sets wallpaper on Windows. Program will run until it finds different image from previous.
 
 # How to customise script?
-### For subreddit change - type subreddit name (case-insensitive)
->subreddit = 'wallpapers'  
+### For subreddit change - type add/remove subbreddit from list (case-insensitive)
+>subreddits = ['wallpapers', 'wallpaper']  
 
 ### For time range change set
 >interval = 'day'
@@ -12,6 +12,7 @@ Wallpaper changer in Python. Scrapes reddit and sets wallpaper on Windows. Progr
 for the following:
 -   hour
 -   day
+-   week
 -   month
 -   year
 -   all
