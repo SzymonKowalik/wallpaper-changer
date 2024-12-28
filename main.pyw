@@ -1,8 +1,16 @@
-import struct, ctypes, requests, random, os, subprocess, sys
-from bs4 import BeautifulSoup
+import ctypes
+import logging
+import os
+import random
+import requests
+import struct
+import subprocess
+import sys
 from PIL import Image
+from bs4 import BeautifulSoup
 from plyer import notification
 
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
@@ -22,12 +30,14 @@ def change_background(path):
     else:
         ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, path, 3)
 
+
 def make_notification(message):
+    """Displays windows notification"""
     notification.notify(
-        title = "wallpaper-changer",
-        message = message,
-        timeout = 8,
-        app_icon = './icon/python.ico'
+        title="wallpaper-changer",
+        message=message,
+        timeout=8,
+        app_icon='./icon/python.ico'
     )
 
 
@@ -40,29 +50,26 @@ def scrape_links(url, subreddit) -> list:
         sys.exit()
 
     soup = BeautifulSoup(response.text, 'html.parser')
-    elements = soup.find_all('a', href=True)
+    elements = soup.find_all("img")
     links = []
     for elem in elements:
-        if f'/r/{subreddit}/comments'.lower() in str(elem).lower():
-            link = f"https://reddit.com{elem['href']}"
-            if link not in links:
-                links.append(link)
+        # Filter wallpapers from other images from website
+        if "preview-img" in elem.get("class"):
+            # Get the picture with the highest quality
+            link = elem.get("srcset").split(" ")[-2]
+            logging.debug(f"Link found {link}")
+            links.append(link)
     return links
 
 
 def download_image(link, ratio):
     """Download image from url and return absolute path to it.
     If many images on certain page picks random one that meets criteria."""
-    response = requests.get(link, headers=HEADERS)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    elements = [elem for elem in soup.find_all('a', href=True) if 'preview.redd.it/' in str(elem)]
-    random.shuffle(elements)
-    for elem in elements:
-        img = requests.get(elem['href']).content
-        with open('wallpaper.jpg', 'wb') as handler:
-            handler.write(img)
-        if not is_file_same('wallpaper.jpg', 'old.jpg') and check_aspect_ratio('wallpaper.jpg', ratio):
-            return os.path.abspath('wallpaper.jpg')
+    img = requests.get(link).content
+    with open('wallpaper.jpg', 'wb') as handler:
+        handler.write(img)
+    if not is_file_same('wallpaper.jpg', 'old.jpg') and check_aspect_ratio('wallpaper.jpg', ratio):
+        return os.path.abspath('wallpaper.jpg')
 
 
 def is_file_same(file1, file2):
