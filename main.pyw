@@ -2,6 +2,7 @@ import ctypes
 import logging
 import os
 import random
+import winreg as reg
 import requests
 import struct
 import subprocess
@@ -29,6 +30,21 @@ def change_background(path):
         ctypes.windll.user32.SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, path, 3)
     else:
         ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, path, 3)
+
+
+def change_lock_screen(path):
+    """Change Windows lock screen background"""
+    # Registry path and value names for lock screen settings
+    reg_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP"
+    key_name = "LockScreenImagePath"
+    status_name = "LockScreenImageStatus"
+
+    # Open or create the registry key
+    with reg.CreateKey(reg.HKEY_CURRENT_USER, reg_path) as key:
+        # Set the path of the lock screen image
+        reg.SetValueEx(key, key_name, 0, reg.REG_SZ, path)
+        # Set the status to 1 (enabled)
+        reg.SetValueEx(key, status_name, 0, reg.REG_DWORD, 1)
 
 
 def make_notification(message):
@@ -128,6 +144,7 @@ def windows_wallpaper_style(file):
 
 
 def scrape_multiple_subreddits(subreddits, interval):
+    """Fetches links from subreddits list"""
     links = []
 
     for subreddit in subreddits:
@@ -148,8 +165,12 @@ def main():
     links = scrape_multiple_subreddits(subreddits, interval)
     rename_old_wallpaper()
 
-    path = image_downloader(links, ratio)
-    change_background(path)
+    lock_screen_path = image_downloader(links, ratio)
+    change_lock_screen(lock_screen_path)
+
+    wallpaper_path = image_downloader(links, ratio)
+    change_background(wallpaper_path)
+
     os.remove('old.jpg')
 
 
